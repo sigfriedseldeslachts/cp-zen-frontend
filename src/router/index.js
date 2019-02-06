@@ -31,7 +31,7 @@ const router = new Router({
     return { x: 0, y: 0 };
   },
   routes: [
-    {
+    /*  {
       path: '/',
       component: {
         template: '<router-view></router-view>',
@@ -40,114 +40,113 @@ const router = new Router({
         await store.dispatch('getLoggedInUser');
         next();
       },
+    },  */
+    {
+      path: '/',
+      name: 'root',
+      beforeEnter(to, from, next) {
+        if (store.getters.isLoggedIn) {
+          return next({ name: 'Home' });
+        }
+
+        return next({ name: 'FindDojo', query: to.query });
+      },
+    },
+    {
+      path: '/find',
+      name: 'FindDojo',
+      component: FindDojo,
+    },
+    {
+      path: '/dojos/:country([A-Za-z]{2})/:path+',
+      name: 'DojoDetails',
+      component: DojoDetails,
+      props: true,
+    },
+    {
+      path: '/dojos/:id',
+      name: 'DojoDetailsId',
+      component: DojoDetails,
+      props: true,
+    },
+    {
+      path: '/dashboard/dojos/events/user-events',
+      redirect: '/dashboard/tickets',
+      name: 'NgMyTickets',
+      beforeEnter: loggedInNavGuard,
+    },
+    {
+      path: '/dashboard/tickets',
+      name: 'MyTickets',
+      component: UserTickets,
+      beforeEnter: loggedInNavGuard,
+    },
+    {
+      path: '/login',
+      name: 'Login',
+      component: Login,
+    },
+    {
+      path: '/home',
+      name: 'Home',
+      component: Home,
+      beforeEnter: loggedInNavGuard,
+    },
+    {
+      path: 'events/:eventId',
+      component: orderWrapper,
+      props: true,
       children: [
         {
           path: '',
-          name: 'root',
-          beforeEnter(to, from, next) {
-            if (store.getters.isLoggedIn) {
-              return next({ name: 'Home' });
-            }
-            return next({ name: 'FindDojo', query: to.query });
-          },
-        },
-        {
-          path: '/find',
-          name: 'FindDojo',
-          component: FindDojo,
-        },
-        {
-          path: '/dojos/:country([A-Za-z]{2})/:path+',
-          name: 'DojoDetails',
-          component: DojoDetails,
-          props: true,
-        },
-        {
-          path: '/dojos/:id',
-          name: 'DojoDetailsId',
-          component: DojoDetails,
-          props: true,
-        },
-        {
-          path: '/dashboard/dojos/events/user-events',
-          redirect: '/dashboard/tickets',
-          name: 'NgMyTickets',
-          beforeEnter: loggedInNavGuard,
-        },
-        {
-          path: '/dashboard/tickets',
-          name: 'MyTickets',
-          component: UserTickets,
-          beforeEnter: loggedInNavGuard,
-        },
-        {
-          path: '/login',
-          name: 'Login',
-          component: Login,
-        },
-        {
-          path: '/home',
-          name: 'Home',
-          component: Home,
-          beforeEnter: loggedInNavGuard,
-        },
-        {
-          path: 'events/:eventId',
-          component: orderWrapper,
+          component: EventDetails,
           props: true,
           children: [
             {
               path: '',
-              component: EventDetails,
+              name: 'LoginOrRegister',
+              component: LoginOrRegister,
               props: true,
-              children: [
-                {
-                  path: '',
-                  name: 'LoginOrRegister',
-                  component: LoginOrRegister,
-                  props: true,
-                  async beforeEnter(to, from, next) {
-                    const loggedInUser = (await UserService.getCurrentUser()).body;
-                    next(loggedInUser.login ? { name: 'EventSessions', params: to.params } : true);
-                  },
-                },
-                {
-                  path: 'sessions',
-                  name: 'EventSessions',
-                  component: EventSessions,
-                  props: true,
-                  beforeEnter: loggedInNavGuard,
-                },
-              ],
+              async beforeEnter(to, from, next) {
+                const loggedInUser = (await UserService.getCurrentUser()).body;
+                next(loggedInUser.login ? { name: 'EventSessions', params: to.params } : true);
+              },
+            },
+            {
+              path: 'sessions',
+              name: 'EventSessions',
+              component: EventSessions,
+              props: true,
+              beforeEnter: loggedInNavGuard,
             },
           ],
-        },
-        {
-          path: 'events/:eventId/confirmation',
-          name: 'EventBookingConfirmation',
-          component: BookingConfirmation,
-          beforeEnter: MultiGuard([loggedInNavGuard, orderExistsNavGuard]),
-          props: true,
-        },
-        // Kept for future development/transitions
-        {
-          path: '/v2',
-          component: {
-            template: '<router-view></router-view>',
-          },
         },
       ],
     },
     {
-      path: '/:path+',
+      path: 'events/:eventId/confirmation',
+      name: 'EventBookingConfirmation',
+      component: BookingConfirmation,
+      beforeEnter: MultiGuard([loggedInNavGuard, orderExistsNavGuard]),
+      props: true,
+    },
+    // Kept for future development/transitions
+    {
+      path: '/v2',
       component: {
-        template: '<div></div>',
-        created() {
-          window.location.reload(true);
-        },
+        template: '<router-view></router-view>',
       },
     },
   ],
+});
+
+/**
+ * Before Each Route
+ */
+router.beforeEach((to, from, next) => {
+  store.dispatch('getLoggedInUser');
+
+  next();
 });
 
 export default router;
